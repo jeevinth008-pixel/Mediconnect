@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediConnect — Health Assistant</title>
+<style>
+  :root{
+    --bg: #F4FAF8;
+    --surface: #FFFFFF;
+    --primary: #0B4F4A;
+    --primary-deep: #062E2B;
+    --primary-light: #E1F1EC;
+    --accent: #2E9C8F;
+    --alert: #D9481F;
+    --alert-light: #FCE7DF;
+    --ink: #14302B;
+    --muted: #6C8A84;
+    --border: #DCEAE6;
+    --mono: 'Courier New', Courier, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--sans);
+    display:flex; justify-content:center;
+    padding:24px 14px;
+    min-height:100vh;
+  }
+  .app{
+    width:100%; max-width:960px;
+    background:var(--surface);
+    border-radius:18px;
+    border:1px solid var(--border);
+    box-shadow:0 20px 50px -25px rgba(6,46,43,0.35);
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  /* ---------- HEADER ---------- */
+  header{
+    background:var(--primary-deep);
+    color:#fff;
+    padding:18px 24px 0 24px;
+  }
+  .header-top{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{
+    width:34px; height:34px; border-radius:9px;
+    background:linear-gradient(145deg, var(--accent), #1a6e63);
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px;
+  }
+  .brand-name{
+    font-weight:800; letter-spacing:0.5px; font-size:18px;
+  }
+  .brand-sub{
+    font-family:var(--mono); font-size:10.5px; color:#9FC9C1;
+    letter-spacing:1px; text-transform:uppercase; margin-top:1px;
+  }
+  .status-pill{
+    font-family:var(--mono); font-size:11px; color:#9FC9C1;
+    border:1px solid #1f5c55; padding:5px 10px; border-radius:20px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .dot{ width:7px; height:7px; border-radius:50%; background:#4ADE80; animation:blink 2s infinite; }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+
+  /* ECG signature divider */
+  .ecg-wrap{ height:30px; overflow:hidden; }
+  .ecg-line{
+    width:200%; height:30px;
+    stroke:var(--accent); stroke-width:2; fill:none;
+    animation:scroll-ecg 6s linear infinite;
+  }
+  @keyframes scroll-ecg{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+
+  .disclaimer{
+    background:var(--alert-light); color:#8A3212;
+    font-size:12px; padding:9px 24px;
+    border-bottom:1px solid #f3cbb8;
+  }
+
+  /* ---------- BODY LAYOUT ---------- */
+  .body-layout{ display:flex; min-height:520px; }
+  aside{
+    width:210px; flex-shrink:0;
+    background:var(--primary-light);
+    border-right:1px solid var(--border);
+    padding:16px 12px;
+  }
+  .aside-label{
+    font-family:var(--mono); font-size:10px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--muted); padding:0 8px 8px;
+  }
+  .quick-btn{
+    width:100%; text-align:left; background:transparent; border:none;
+    padding:9px 8px; border-radius:8px; font-size:13px; color:var(--primary-deep);
+    cursor:pointer; display:flex; align-items:center; gap:8px;
+    font-family:var(--sans);
+  }
+  .quick-btn:hover{ background:#CFE9E2; }
+  .quick-btn .em{ font-size:15px; }
+  .quick-divider{ height:1px; background:var(--border); margin:10px 4px; }
+
+  main{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  .chat-window{
+    flex:1; padding:20px 22px; overflow-y:auto;
+    display:flex; flex-direction:column; gap:14px;
+    max-height:520px;
+  }
+  .msg{ display:flex; gap:10px; max-width:82%; }
+  .msg.bot{ align-self:flex-start; }
+  .msg.user{ align-self:flex-end; flex-direction:row-reverse; }
+  .avatar{
+    width:28px; height:28px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+    margin-top:2px;
+  }
+  .msg.bot .avatar{ background:var(--primary-light); }
+  .msg.user .avatar{ background:var(--primary); color:#fff; }
+  .bubble{
+    padding:10px 13px; border-radius:12px; font-size:14px; line-height:1.5;
+    white-space:pre-wrap;
+  }
+  .msg.bot .bubble{ background:var(--primary-light); border-top-left-radius:3px; color:var(--ink); }
+  .msg.user .bubble{ background:var(--primary); color:#fff; border-top-right-radius:3px; }
+  .bubble.emergency{ background:var(--alert-light); border:1px solid #f3b596; color:#8A3212; font-weight:600; }
+  .bubble .tag{
+    display:block; font-family:var(--mono); font-size:10px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:4px; font-weight:600;
+  }
+  .bubble.emergency .tag{ color:#8A3212; }
+  .choice-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .choice-btn{
+    background:#fff; border:1px solid var(--accent); color:var(--primary-deep);
+    padding:5px 10px; border-radius:20px; font-size:12px; cursor:pointer;
+    font-family:var(--sans);
+  }
+  .choice-btn:hover{ background:var(--accent); color:#fff; }
+
+  .typing{ display:flex; gap:4px; align-items:center; padding:4px 0; }
+  .typing span{
+    width:6px; height:6px; border-radius:50%; background:var(--accent);
+    animation:pulse-dot 1s infinite ease-in-out;
+  }
+  .typing span:nth-child(2){ animation-delay:0.15s; }
+  .typing span:nth-child(3){ animation-delay:0.3s; }
+  @keyframes pulse-dot{ 0%,100%{ transform:scale(0.6); opacity:0.4;} 50%{ transform:scale(1); opacity:1;} }
+
+  .input-row{
+    border-top:1px solid var(--border); padding:14px 18px;
+    display:flex; gap:10px; background:#fff;
+  }
+  .input-row input{
+    flex:1; border:1px solid var(--border); border-radius:10px;
+    padding:11px 14px; font-size:14px; outline:none; font-family:var(--sans);
+  }
+  .input-row input:focus{ border-color:var(--accent); }
+  .input-row button{
+    background:var(--primary); color:#fff; border:none; border-radius:10px;
+    padding:0 18px; font-size:13px; font-weight:700; cursor:pointer;
+    letter-spacing:0.3px;
+  }
+  .input-row button:hover{ background:var(--primary-deep); }
+
+  @media (max-width:640px){
+    .body-layout{ flex-direction:column; }
+    aside{ width:100%; display:flex; flex-wrap:wrap; gap:4px; border-right:none; border-bottom:1px solid var(--border); }
+    .aside-label{ width:100%; }
+    .quick-btn{ width:auto; }
+    .quick-divider{ display:none; }
+    .chat-window{ max-height:400px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-mark">🩺</div>
+        <div>
+          <div class="brand-name">MediConnect</div>
+          <div class="brand-sub">Health Assistant · Demo</div>
+        </div>
+      </div>
+      <div class="status-pill"><span class="dot"></span> ASSISTANT ONLINE</div>
+    </div>
+    <div class="ecg-wrap">
+      <svg class="ecg-line" viewBox="0 0 800 30" preserveAspectRatio="none">
+        <path d="M0,15 L60,15 L75,15 L85,2 L95,28 L105,15 L120,15 L400,15 L415,15 L425,2 L435,28 L445,15 L460,15 L800,15 L860,15 L875,2 L885,28 L895,15 L910,15 L1200,15" />
+      </svg>
+    </div>
+  </header>
+
+  <div class="disclaimer">
+    ⚠️ Educational demo only — not a substitute for professional medical advice, diagnosis, or treatment. In a medical emergency, contact local emergency services immediately.
+  </div>
+
+  <div class="body-layout">
+    <aside>
+      <div class="aside-label">Quick Actions</div>
+      <button class="quick-btn" data-q="I have a cough and fever"><span class="em">🩺</span> Symptom check</button>
+      <button class="quick-btn" data-q="Which doctor should I consult for skin problems?"><span class="em">👨‍⚕️</span> Find a doctor</button>
+      <button class="quick-btn" data-q="I want to book a doctor"><span class="em">📅</span> Book appointment</button>
+      <button class="quick-btn" data-q="What is paracetamol generally used for?"><span class="em">💊</span> Medicine info</button>
+      <button class="quick-btn" data-q="Show my recent appointments"><span class="em">📋</span> My records</button>
+      <button class="quick-btn" data-q="When is my next appointment?"><span class="em">🔔</span> Reminders</button>
+      <div class="quick-divider"></div>
+      <button class="quick-btn" data-q="What is diabetes?"><span class="em">❓</span> Health FAQs</button>
+      <div class="quick-divider"></div>
+      <button class="quick-btn" data-q="I am having severe chest pain and can't breathe" style="color:#8A3212;"><span class="em">🚨</span> Emergency help</button>
+    </aside>
+
+    <main>
+      <div class="chat-window" id="chatWindow"></div>
+      <div class="input-row">
+        <input id="userInput" type="text" placeholder="Type your message… e.g. 'I have a headache'" autocomplete="off">
+        <button id="sendBtn">Send</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   MEDICONNECT — RULE-BASED CHATBOT ENGINE
+   ========================================================= */
+
+const chatWindow = document.getElementById('chatWindow');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+
+// ---------- Mock data ----------
+const doctors = {
+  "Dermatologist": ["Dr. Anika Rao", "Dr. Farhan Sheikh"],
+  "General Physician": ["Dr. Priya Menon", "Dr. Karthik Iyer"],
+  "Cardiologist": ["Dr. Sunil Varma", "Dr. Leela Nair"],
+  "Dentist": ["Dr. Rohan Shah", "Dr. Meera Pillai"],
+  "Ophthalmologist": ["Dr. Ayesha Khan"],
+  "Orthopedist": ["Dr. Vikram Desai"],
+  "Pediatrician": ["Dr. Nisha Gupta"],
+  "Gastroenterologist": ["Dr. Arjun Nambiar"],
+  "Psychiatrist": ["Dr. Divya Krishnan"],
+  "ENT Specialist": ["Dr. Ramesh Pillai"],
+  "Gynecologist": ["Dr. Sonal Kapoor"],
+  "Endocrinologist": ["Dr. Rajeev Menon"],
+  "Neurologist": ["Dr. Kavita Rao"],
+  "Allergist": ["Dr. Imran Baig"]
+};
+const availableSlots = ["Mon 10:00 AM", "Mon 3:30 PM", "Wed 11:15 AM", "Thu 9:00 AM", "Fri 4:00 PM"];
+let myAppointments = [
+  { doctor: "Dr. Priya Menon", specialty: "General Physician", date: "18 Aug 2026", time: "10:30 AM", status: "Completed" },
+  { doctor: "Dr. Rohan Shah", specialty: "Dentist", date: "5 Sep 2026", time: "3:00 PM", status: "Upcoming" }
+];
+
+const specialtyKeywords = [
+  { kw: ["skin","rash","acne","pimple","itching","eczema"], spec: "Dermatologist" },
+  { kw: ["fever","cough","cold","flu","sore throat","body ache"], spec: "General Physician" },
+  { kw: ["chest pain","heart","palpitation","bp","blood pressure"], spec: "Cardiologist" },
+  { kw: ["tooth","teeth","gum","cavity"], spec: "Dentist" },
+  { kw: ["eye","vision","blurry"], spec: "Ophthalmologist" },
+  { kw: ["bone","fracture","joint","back pain","knee"], spec: "Orthopedist" },
+  { kw: ["baby","infant","child","kid"], spec: "Pediatrician" },
+  { kw: ["stomach","digestion","nausea","vomit","acidity"], spec: "Gastroenterologist" },
+  { kw: ["anxiety","stress","depression","mental health"], spec: "Psychiatrist" },
+  { kw: ["ear","hearing","nose block","sinus"], spec: "ENT Specialist" },
+  { kw: ["pregnan","period","menstrual","gynec"], spec: "Gynecologist" },
+  { kw: ["thyroid","diabetes","hormone"], spec: "Endocrinologist" },
+  { kw: ["headache","migraine","dizziness","seizure"], spec: "Neurologist" },
+  { kw: ["allergy","allergic"], spec: "Allergist" }
+];
+
+const medicineInfo = {
+  "paracetamol": "a common pain reliever and fever reducer (also called acetaminophen).",
+  "acetaminophen": "a common pain reliever and fever reducer (also called paracetamol).",
+  "ibuprofen": "a non-steroidal anti-inflammatory drug (NSAID) used for pain, inflammation, and fever.",
+  "amoxicillin": "a penicillin-type antibiotic used to treat certain bacterial infections.",
+  "azithromycin": "an antibiotic used to treat a range of bacterial infections.",
+  "cetirizine": "an antihistamine commonly used to relieve allergy symptoms.",
+  "omeprazole": "a medicine that reduces stomach acid, often used for acid reflux or ulcers.",
+  "metformin": "a medicine commonly used to help manage type 2 diabetes.",
+  "amlodipine": "a medicine commonly used to manage high blood pressure.",
+  "insulin": "a hormone medication used to manage blood sugar levels, mainly in diabetes.",
+  "aspirin": "a medicine used for pain relief and, at low doses, to help prevent blood clots."
+};
+
+const faqInfo = {
+  "diabetes": "Diabetes is a condition where the body has trouble regulating blood sugar (glucose) levels, either because it doesn't make enough insulin or can't use it effectively.",
+  "bp": "BP stands for Blood Pressure — the force of blood pushing against artery walls. It's usually written as two numbers, e.g. 120/80 mmHg.",
+  "blood pressure": "Blood pressure is the force of blood pushing against artery walls, usually written as two numbers (e.g. 120/80 mmHg): systolic over diastolic.",
+  "bmi": "BMI (Body Mass Index) is a rough measure of body fat based on height and weight, used as a general health screening tool.",
+  "cholesterol": "Cholesterol is a fat-like substance in the blood. Some is needed for healthy cells, but high levels (especially LDL) can raise heart disease risk.",
+  "anemia": "Anemia is a condition where you lack enough healthy red blood cells or hemoglobin to carry adequate oxygen to your body's tissues.",
+  "asthma": "Asthma is a chronic condition where airways narrow and swell, making breathing difficult and often triggering coughing or wheezing.",
+  "allergy": "An allergy is an immune system reaction to a normally harmless substance (like pollen or certain foods), causing symptoms such as sneezing, itching, or rashes.",
+  "vaccination": "Vaccination introduces a harmless piece or weakened form of a germ to train the immune system to recognize and fight it in future.",
+  "obesity": "Obesity is a condition involving excess body fat that can increase the risk of health issues like heart disease and diabetes."
+};
+
+const emergencyKeywords = [
+  "can't breathe","cannot breathe","not breathing","severe chest pain","chest pain and",
+  "unconscious","unresponsive","severe bleeding","heavy bleeding","heart attack",
+  "stroke","face drooping","slurred speech","seizure","choking","severe allergic reaction",
+  "anaphylaxis","suicidal","want to die","overdose","losing consciousness","turning blue"
+];
+
+// ---------- Conversation state (for multi-step booking) ----------
+let state = { flow: null, step: null, specialty: null, doctor: null, date: null };
+
+// ---------- UI helpers ----------
+function scrollDown(){ chatWindow.scrollTop = chatWindow.scrollHeight; }
+
+function addMessage(sender, html, opts={}){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + sender;
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = sender === 'bot' ? '🩺' : '🙂';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble' + (opts.emergency ? ' emergency' : '');
+  let inner = '';
+  if(opts.tag){ inner += '<span class="tag">'+opts.tag+'</span>'; }
+  inner += html;
+  bubble.innerHTML = inner;
+  if(opts.choices){
+    const row = document.createElement('div');
+    row.className = 'choice-row';
+    opts.choices.forEach(c=>{
+      const b = document.createElement('button');
+      b.className = 'choice-btn';
+      b.textContent = c;
+      b.onclick = ()=> handleUserMessage(c);
+      row.appendChild(b);
+    });
+    bubble.appendChild(row);
+  }
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  chatWindow.appendChild(wrap);
+  scrollDown();
+}
+
+function botTyping(callback, delay=550){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot';
+  wrap.id = 'typingIndicator';
+  wrap.innerHTML = '<div class="avatar">🩺</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>';
+  chatWindow.appendChild(wrap);
+  scrollDown();
+  setTimeout(()=>{
+    const el = document.getElementById('typingIndicator');
+    if(el) el.remove();
+    callback();
+  }, delay);
+}
+
+// ---------- Intent detection ----------
+function detectEmergency(text){
+  return emergencyKeywords.some(k => text.includes(k));
+}
+
+function detectSpecialty(text){
+  for(const entry of specialtyKeywords){
+    if(entry.kw.some(k => text.includes(k))) return entry.spec;
+  }
+  return null;
+}
+
+function detectMedicine(text){
+  for(const med in medicineInfo){
+    if(text.includes(med)) return med;
+  }
+  return null;
+}
+
+function detectFaq(text){
+  for(const term in faqInfo){
+    if(text.includes(term)) return term;
+  }
+  return null;
+}
+
+// ---------- Response builders ----------
+function respondEmergency(){
+  botTyping(()=>{
+    addMessage('bot',
+      "This sounds like it could be a medical emergency. Please contact local emergency services or go to the nearest emergency room right away — in India you can call <b>108</b> or <b>112</b>. Don't wait for an online response. If someone is with you, ask them to stay by your side until help arrives.",
+      { tag: '🚨 Emergency Guidance', emergency: true }
+    );
+  }, 350);
+}
+
+function respondSymptom(text){
+  const spec = detectSpecialty(text);
+  botTyping(()=>{
+    let msg = "Thanks for sharing that. I can't diagnose conditions, but based on general patterns, symptoms like this are often worth discussing with a doctor";
+    if(spec){
+      msg += ` — a <b>${spec}</b> would usually be the right specialist to start with.`;
+    } else {
+      msg += ", such as a General Physician, who can point you further if needed.";
+    }
+    msg += "\n\nIf symptoms are severe, sudden, or worsening quickly, please seek in-person medical care.";
+    addMessage('bot', msg, {
+      tag: '🩺 Symptom Guidance',
+      choices: spec ? [`Book a ${spec}`, "Show general healthcare FAQs"] : ["Book a General Physician"]
+    });
+  });
+}
+
+function respondDoctorRecommend(text){
+  const spec = detectSpecialty(text);
+  botTyping(()=>{
+    if(spec){
+      addMessage('bot', `For that, I'd recommend consulting a <b>${spec}</b>.\n\nAvailable at MediConnect: ${doctors[spec].join(", ")}.`, {
+        tag: '👨‍⚕️ Doctor Recommendation',
+        choices: [`Book a ${spec}`]
+      });
+    } else {
+      addMessage('bot', "Could you tell me a bit more about the symptom or body area? For example: 'skin problem', 'tooth pain', or 'chest pain'.", { tag: '👨‍⚕️ Doctor Recommendation' });
+    }
+  });
+}
+
+function respondMedicine(text){
+  const med = detectMedicine(text);
+  botTyping(()=>{
+    if(med){
+      const name = med.charAt(0).toUpperCase()+med.slice(1);
+      addMessage('bot', `<b>${name}</b> is ${medicineInfo[med]}\n\nThis is general information only — for dosage, suitability, or interactions with other medicines, please consult a doctor or pharmacist.`, { tag: '💊 Medicine Info' });
+    } else {
+      addMessage('bot', "I have general info on common medicines like paracetamol, ibuprofen, amoxicillin, cetirizine, omeprazole, metformin, amlodipine, and aspirin. Which one would you like to know about?", { tag: '💊 Medicine Info' });
+    }
+  });
+}
+
+function respondRecords(){
+  botTyping(()=>{
+    if(myAppointments.length === 0){
+      addMessage('bot', "You don't have any appointments on record yet.", { tag: '📋 Medical Records' });
+      return;
+    }
+    let list = myAppointments.map(a => `• ${a.date}, ${a.time} — ${a.doctor} (${a.specialty}) — <i>${a.status}</i>`).join('\n');
+    addMessage('bot', "Here are your recent appointments:\n\n" + list, { tag: '📋 Medical Records' });
+  });
+}
+
+function respondReminder(){
+  botTyping(()=>{
+    const upcoming = myAppointments.find(a => a.status === "Upcoming");
+    if(upcoming){
+      addMessage('bot', `Your next appointment is with <b>${upcoming.doctor}</b> (${upcoming.specialty}) on <b>${upcoming.date} at ${upcoming.time}</b>.`, { tag: '🔔 Reminder' });
+    } else {
+      addMessage('bot', "You don't have any upcoming appointments scheduled. Would you like to book one?", { tag: '🔔 Reminder', choices: ["I want to book a doctor"] });
+    }
+  });
+}
+
+function respondFaq(text){
+  const term = detectFaq(text);
+  botTyping(()=>{
+    if(term){
+      addMessage('bot', faqInfo[term], { tag: '❓ Healthcare FAQ' });
+    } else {
+      addMessage('bot', "I can explain common health terms like diabetes, blood pressure, BMI, cholesterol, anemia, asthma, allergy, vaccination, and obesity. What would you like to know?", { tag: '❓ Healthcare FAQ' });
+    }
+  });
+}
+
+// ---------- Booking flow (multi-step) ----------
+function startBooking(text){
+  const spec = detectSpecialty(text);
+  state = { flow: 'booking', step: spec ? 'choose_doctor' : 'choose_specialty', specialty: spec, doctor: null, date: null };
+  botTyping(()=>{
+    if(spec){
+      addMessage('bot', `Sure — let's book a <b>${spec}</b> appointment. Which doctor would you prefer?`, {
+        tag: '📅 Book Appointment', choices: doctors[spec]
+      });
+    } else {
+      addMessage('bot', "Sure — let's book an appointment. Which specialty do you need?", {
+        tag: '📅 Book Appointment', choices: Object.keys(doctors).slice(0,6)
+      });
+    }
+  });
+}
+
+function continueBooking(text, rawText){
+  if(state.step === 'choose_specialty'){
+    const match = Object.keys(doctors).find(s => rawText.toLowerCase().includes(s.toLowerCase()));
+    if(match){
+      state.specialty = match; state.step = 'choose_doctor';
+      botTyping(()=> addMessage('bot', `Great — which doctor would you prefer for <b>${match}</b>?`, { tag: '📅 Book Appointment', choices: doctors[match] }));
+    } else {
+      botTyping(()=> addMessage('bot', "I didn't catch that specialty. Please choose one:", { tag: '📅 Book Appointment', choices: Object.keys(doctors).slice(0,6) }));
+    }
+    return;
+  }
+  if(state.step === 'choose_doctor'){
+    const allDocs = state.specialty ? doctors[state.specialty] : Object.values(doctors).flat();
+    const match = allDocs.find(d => rawText.toLowerCase().includes(d.toLowerCase().replace('dr. ','')));
+    if(match){
+      state.doctor = match; state.step = 'choose_time';
+      botTyping(()=> addMessage('bot', `Got it — <b>${match}</b>. Please pick a slot:`, { tag: '📅 Book Appointment', choices: availableSlots }));
+    } else {
+      botTyping(()=> addMessage('bot', "Please pick a doctor from the list:", { tag: '📅 Book Appointment', choices: allDocs }));
+    }
+    return;
+  }
+  if(state.step === 'choose_time'){
+    const match = availableSlots.find(s => rawText.includes(s.split(' ')[0]) || rawText.toLowerCase().includes(s.toLowerCase()));
+    if(match || availableSlots.includes(rawText)){
+      const slot = match || rawText;
+      state.date = slot; state.step = 'confirm';
+      botTyping(()=> addMessage('bot', `Please confirm: <b>${state.doctor}</b> (${state.specialty}) — <b>${slot}</b>.`, { tag: '📅 Book Appointment', choices: ["Confirm booking", "Cancel"] }));
+    } else {
+      botTyping(()=> addMessage('bot', "Please choose one of the available slots:", { tag: '📅 Book Appointment', choices: availableSlots }));
+    }
+    return;
+  }
+  if(state.step === 'confirm'){
+    if(rawText.toLowerCase().includes('confirm')){
+      myAppointments.push({ doctor: state.doctor, specialty: state.specialty, date: state.date.split(' ')[0], time: state.date.split(' ').slice(1).join(' '), status: 'Upcoming' });
+      botTyping(()=> addMessage('bot', `✅ Appointment booked with <b>${state.doctor}</b> (${state.specialty}) — ${state.date}. You can view it anytime under "My records".`, { tag: '📅 Booking Confirmed' }));
+    } else {
+      botTyping(()=> addMessage('bot', "No problem, booking cancelled. Let me know if you'd like to try again.", { tag: '📅 Book Appointment' }));
+    }
+    state = { flow: null, step: null, specialty: null, doctor: null, date: null };
+    return;
+  }
+}
+
+// ---------- Main dispatcher ----------
+function handleUserMessage(raw){
+  const text = raw.toLowerCase().trim();
+  if(!text) return;
+  addMessage('user', escapeHtml(raw));
+
+  if(state.flow === 'booking'){
+    continueBooking(text, raw);
+    return;
+  }
+
+  if(detectEmergency(text)){ respondEmergency(); return; }
+  if(/\bbook\b|\bappointment\b.*\b(book|schedule)\b|\bschedule\b.*doctor|want to book/.test(text)){ startBooking(text); return; }
+  if(/recent appointment|my appointments|medical record|my records/.test(text)){ respondRecords(); return; }
+  if(/next appointment|remind|reminder/.test(text)){ respondReminder(); return; }
+  if(/which doctor|recommend.*doctor|doctor should i (consult|see)/.test(text)){ respondDoctorRecommend(text); return; }
+  if(/medicine|tablet|drug|used for/.test(text) && detectMedicine(text)){ respondMedicine(text); return; }
+  if(/what is|what does|meaning of/.test(text) && detectFaq(text)){ respondFaq(text); return; }
+  if(detectSpecialty(text)){ respondSymptom(text); return; }
+  if(detectMedicine(text)){ respondMedicine(text); return; }
+  if(detectFaq(text)){ respondFaq(text); return; }
+
+  botTyping(()=>{
+    addMessage('bot', "I can help with symptom guidance, doctor recommendations, booking appointments, medicine info, your records, reminders, or general health FAQs. Could you rephrase, or try one of the quick actions?", { tag: '🩺 MediConnect' });
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---------- Wire up UI ----------
+sendBtn.onclick = ()=>{
+  const val = userInput.value;
+  userInput.value = '';
+  handleUserMessage(val);
+};
+userInput.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ sendBtn.click(); }
+});
+document.querySelectorAll('.quick-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> handleUserMessage(btn.dataset.q));
+});
+
+// ---------- Welcome message ----------
+window.addEventListener('load', ()=>{
+  addMessage('bot', "Hi, I'm your MediConnect assistant 👋\nI can help with symptom guidance, finding the right doctor, booking appointments, medicine info, your records, reminders, and general health questions.\n\nHow can I help today?", { tag: '🩺 Welcome' });
+});
+</script>
+</body>
+</html>
